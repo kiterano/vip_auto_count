@@ -53,7 +53,7 @@ tools = pyocr.get_available_tools()
 tool = tools[0]
 builder = pyocr.builders.TextBuilder()
 
-cam_id = 2 # 自分の仮想カメラのデバイスID (大体0～3)
+cam_id = 1 # 自分の仮想カメラのデバイスID (大体0～3)
 cap = cv2.VideoCapture(cam_id)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920) # カメラ画像の横幅を1920に設定
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080) # カメラ画像の縦幅を1080に設定
