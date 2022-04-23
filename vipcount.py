@@ -47,13 +47,13 @@ def write_rate(rate: str):
         f.write(add_commas(rate))
 
 os.chdir(os.path.dirname(os.path.abspath(__file__))) #実行ファイルのあるディレクトリに移動
-builder = pyocr.builders.TextBuilder()
 
 # OCRエンジンの取得
 tools = pyocr.get_available_tools()
 tool = tools[0]
+builder = pyocr.builders.TextBuilder()
 
-cam_id = 2 # 自分の仮想カメラのデバイスID 大体(0～3)
+cam_id = 2 # 自分の仮想カメラのデバイスID (大体0～3)
 cap = cv2.VideoCapture(cam_id)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920) # カメラ画像の横幅を1920に設定
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080) # カメラ画像の縦幅を1080に設定
@@ -84,7 +84,7 @@ while True:
     # print('width:' + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
     # print('height:' + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
-    if not first_rate_is_counted:
+    if not first_rate_is_counted: # 最初に戦闘力を取得する
         first_rate = read_first_rate_from_image(frame)
         write_rate(first_rate)
         print(get_rate())
