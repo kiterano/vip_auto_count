@@ -53,23 +53,13 @@ tools = pyocr.get_available_tools()
 tool = tools[0]
 builder = pyocr.builders.TextBuilder()
 
-cam_id = 0 # 自分の仮想カメラのデバイスID (大体0～3)
+cam_id = 2 # 自分の仮想カメラのデバイスID (大体0～3)
 cap = cv2.VideoCapture(cam_id)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920) # カメラ画像の横幅を1920に設定
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080) # カメラ画像の縦幅を1080に設定
 
 win_image = cv2.imread('win.png') # 自分が勝ったときのリザルト
 lose_image = cv2.imread('lose.png') #　自分が負けたときのリザルト
-
-# print(cap.isOpened())
-
-# if(os.path.exists('vipc.txt')): #もしテキストファイルが存在していれば、読み込んで現在の連勝数と戦闘力を表示
-#     print(get_wins())
-#     print(get_rate())
-
-# else: #もしテキストファイルが存在しなければ、新しくテキストファイルを作り0連勝を書き込む
-#     reset_wins()
-#     print('0連勝')
 
 win_is_counted: bool = False
 first_rate_is_counted: bool = False
