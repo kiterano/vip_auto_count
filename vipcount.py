@@ -27,8 +27,11 @@ def get_rate() -> str:
 def read_rate_from_image(frame) -> str:
     crop = frame[265:300, 667:854]
     rate_img = Image.fromarray(crop)
+    return remove_non_numbers(tool.image_to_string(rate_img, lang="eng", builder=builder))
 
-    builder = pyocr.builders.TextBuilder()
+def read_first_rate_from_image(frame) -> str:
+    crop = frame[722:770, 1544:1797]
+    rate_img = Image.fromarray(crop)
     return remove_non_numbers(tool.image_to_string(rate_img, lang="eng", builder=builder))
 
 def write_wins(wins: int):
@@ -44,6 +47,7 @@ def write_rate(rate: str):
         f.write(add_commas(rate))
 
 os.chdir(os.path.dirname(os.path.abspath(__file__))) #実行ファイルのあるディレクトリに移動
+builder = pyocr.builders.TextBuilder()
 
 # OCRエンジンの取得
 tools = pyocr.get_available_tools()
@@ -59,16 +63,18 @@ lose_image = cv2.imread('lose.png') #　自分が負けたときのリザルト
 
 print(cap.isOpened())
 
-if(os.path.exists('vipc.txt')): #もしテキストファイルが存在していれば、読み込んで現在の連勝数と戦闘力を表示
-    print(get_wins())
-    print(get_rate())
+# if(os.path.exists('vipc.txt')): #もしテキストファイルが存在していれば、読み込んで現在の連勝数と戦闘力を表示
+#     print(get_wins())
+#     print(get_rate())
 
-else: #もしテキストファイルが存在しなければ、新しくテキストファイルを作り0連勝を書き込む
-    reset_wins()
-    print('0連勝')
+# else: #もしテキストファイルが存在しなければ、新しくテキストファイルを作り0連勝を書き込む
+#     reset_wins()
+#     print('0連勝')
+
+print(get_wins())
 
 win_is_counted: bool = False
-rate_is_counted: bool = False
+first_rate_is_counted: bool = False
 
 while True:
     ret, frame = cap.read()
@@ -78,6 +84,12 @@ while True:
     # print('width:' + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
     # print('height:' + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
+    if not first_rate_is_counted:
+        first_rate = read_first_rate_from_image(frame)
+        write_rate(first_rate)
+        print(get_rate())
+        first_rate_is_counted = True
+        
     win_frame = frame[14:194, 682:784] # キャプチャしているフレームをwin_imageと同じ領域に切り取る
     lose_frame = frame[39:189, 720:825] # キャプチャしているフレームをlose_imageと同じ領域に切り取る
     # frame[y:y, x:x]
