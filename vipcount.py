@@ -125,7 +125,7 @@ while True:
 
         if not win_is_counted:
             reset_wins()
-            print("0 連勝")
+            print("0連勝")
             win_is_counted = True
 
     else:
