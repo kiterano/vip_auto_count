@@ -108,22 +108,22 @@ while True:
     # print('lose:' + str(np.count_nonzero(lose_image == lose_frame) / lose_image.size))
 
     if np.count_nonzero(win_image == win_frame) / win_image.size > 0.8: # もしwin_imageとwin_frameの一致率が0.8以上だった場合
-        result = read_rate_from_image(frame)
-        write_rate(result)
-        print(add_commas(result))
-
-        if not win_is_counted: # win_is_countedは一度連勝を＋1したらそれ以降そのリザルトではカウントしないようにするため
-            add_wins()
-            print(get_wins())
-            win_is_counted = True
-
-    elif np.count_nonzero(lose_image == lose_frame) / lose_image.size > 0.8: # もしlose_imageとlose_frameの一致率が0.8以上だった場合
-        result = read_rate_from_image(frame)
+        result = read_rate_from_image(frame) # 戦闘力取得
         write_rate(result)
         print(add_commas(result))
 
         if not win_is_counted:
-            reset_wins()
+            add_wins() # 連勝数+1
+            print(get_wins())
+            win_is_counted = True
+
+    elif np.count_nonzero(lose_image == lose_frame) / lose_image.size > 0.8: # もしlose_imageとlose_frameの一致率が0.8以上だった場合
+        result = read_rate_from_image(frame) # 戦闘力取得
+        write_rate(result)
+        print(add_commas(result))
+
+        if not win_is_counted:
+            reset_wins() # 連勝数=0
             print(get_wins())
             win_is_counted = True
 
