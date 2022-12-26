@@ -154,13 +154,6 @@ while True:
         kuma_dict = kumamate_get_rate()
         # print(kuma_dict)
         start_time = int(time.time())
-    
-    # 読み込んでいるWebカメラを表示
-    # cv2.imshow('video', frame)
-
-    # 読み込んでいるwebカメラの縦横幅を表示
-    # print('width:' + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
-    # print('height:' + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
     if not first_rate_is_counted: # キャラ選択画面で戦闘力を取得する
         first_rate = read_first_rate_from_image(frame)
@@ -174,14 +167,6 @@ while True:
     win_frame = frame[14:194, 682:784] # キャプチャしているフレームをwin_imageと同じ領域に切り取る
     lose_frame = frame[39:189, 720:825] # キャプチャしているフレームをlose_imageと同じ領域に切り取る
     # frame[y:y, x:x]
-
-    # win_frameとlose_frameを画像として保存。win_imageとlose_imageはこの2つのフレームから切り取った画像である。
-    # cv2.imwrite('win_frame.png', win_frame)
-    # cv2.imwrite('lose_frame.png', lose_frame)
-
-    # imageとframeの一致率を表示
-    # print('win:' + str(np.count_nonzero(win_image == win_frame) / win_image.size))
-    # print('lose:' + str(np.count_nonzero(lose_image == lose_frame) / lose_image.size))
 
     if np.count_nonzero(win_image == win_frame) / win_image.size > 0.8: # もしwin_imageとwin_frameの一致率が0.8以上だった場合
         result = read_rate_from_image(frame) # 戦闘力取得
