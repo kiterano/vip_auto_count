@@ -1,4 +1,7 @@
 numpy
 opencv-python
-pyocr
+# pyocr
 Pillow
+beautifulsoup4
+requests
+easyocr
