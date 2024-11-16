@@ -1,3 +1,4 @@
 .vip_auto_count_venv/
 .python-version
 *.txt
+img_xy_get.py

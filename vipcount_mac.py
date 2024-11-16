@@ -30,7 +30,7 @@ def reset_wins():
     # 連勝数をリセットする
     write_wins(0)
 
-def read_first_rate_from_image(frame) -> str:
+def read_first_rate_from_image(frame, reader) -> str:
     # キャラ選択画面から戦闘力を取得する
     crop = frame[722:770, 1544:1797]
     rate_img = Image.fromarray(crop)
@@ -40,13 +40,12 @@ def read_first_rate_from_image(frame) -> str:
     return remove_non_numbers(result)
 
 
-def read_rate_from_image(frame) -> str:
+def read_rate_from_image(frame, reader) -> str:
     # リザルト画面から戦闘力を取得する
     crop = frame[265:300, 667:854]
     rate_img = Image.fromarray(crop)
     result = reader.readtext(np.array(rate_img), detail=0)
     result = result[0]
-    # return remove_non_numbers(tool.image_to_string(rate_img, lang="eng", builder=builder))
     return remove_non_numbers(result)
 
 def write_rate(rate: str):
@@ -68,7 +67,7 @@ def add_commas(rate: str) -> str:
     rate = "{:,}".format(int(rate))
     return rate
 
-def kumamate_get_rate() -> dict:
+def kumamate_get_rate(soup) -> dict:
     # クマメイトから戦闘力の辞書を作成
     kuma_dict = {}
 
@@ -91,7 +90,7 @@ def kumamate_get_rate() -> dict:
     
     return kuma_dict
 
-def rate_comparison(rate):
+def rate_comparison(rate, kuma_dict):
     # 現在の戦闘力とクマメイトの戦闘力を比較
     kuma_rate_list = list(kuma_dict.values())
 
@@ -123,87 +122,98 @@ def write_status(current_status, next_status):
     with open('next_status.txt',"w",encoding="utf-8") as f2:
         f2.write(next_status)
 
-os.chdir(os.path.dirname(os.path.abspath(__file__))) #実行ファイルのあるディレクトリに移動
+def calc_ssim(frame, image):
+    # 画像の類似度をSSIMで計算
+    SSIM_opencv, _ = cv2.quality.QualitySSIM_compute(frame, image)
+    ssim = np.average(SSIM_opencv)
+    return ssim
 
-# クマメイトの情報を取得
-load_url = "https://kumamate.net/vip/"
-html = requests.get(load_url)
-soup = BeautifulSoup(html.content, "html.parser")
 
-# 時間設定:5分置き(絶対変更しないで)
-access_timeout_sec = 300
-start_time = int(time.time())
+def main():
+    os.chdir(os.path.dirname(os.path.abspath(__file__))) #実行ファイルのあるディレクトリに移動
 
-# クマメイトの世界戦闘力辞書を取得
-kuma_dict = kumamate_get_rate()
+    # クマメイトの情報を取得
+    load_url = "https://kumamate.net/vip/"
+    html = requests.get(load_url)
+    soup = BeautifulSoup(html.content, "html.parser")
 
-# OCRエンジンの取得
-reader = easyocr.Reader(['en']) # 文字の選択一回だけでいい
+    # 時間設定:5分置き(絶対変更しないで)
+    access_timeout_sec = 300
+    start_time = int(time.time())
 
-cam_id = 0 # 自分の仮想カメラのデバイスID (大体0～3)
-cap = cv2.VideoCapture(cam_id)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920) # カメラ画像の横幅を1920に設定
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080) # カメラ画像の縦幅を1080に設定
+    # クマメイトの世界戦闘力辞書を取得
+    kuma_dict = kumamate_get_rate(soup)
 
-win_image = cv2.imread('win.png') # 自分が勝ったときのリザルト
-lose_image = cv2.imread('lose.png') #　自分が負けたときのリザルト
+    # OCRエンジンの取得
+    reader = easyocr.Reader(['ja', 'en']) # 文字の選択一回だけでいい
 
-win_is_counted: bool = False
-first_rate_is_counted: bool = False
+    cam_id = 0 # 自分の仮想カメラのデバイスID (大体0～3)
+    cap = cv2.VideoCapture(cam_id)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920) # カメラ画像の横幅を1920に設定
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080) # カメラ画像の縦幅を1080に設定
 
-while True:
-    ret, frame = cap.read()
+    win_image = cv2.imread('win.png') # 自分が勝ったときのリザルト
+    lose_image = cv2.imread('lose.png') #　自分が負けたときのリザルト
 
-    if access_timeout_sec <= int(time.time()) - start_time:
-        kuma_dict = kumamate_get_rate()
-        # print(kuma_dict)
-        start_time = int(time.time())
+    win_is_counted: bool = False
+    first_rate_is_counted: bool = False
 
-    if not first_rate_is_counted: # キャラ選択画面で戦闘力を取得する
-        first_rate = read_first_rate_from_image(frame)
-        rate_comparison(int(first_rate))
-        write_rate(first_rate)
-        print(True)
-        print(get_wins())
-        print(get_rate())
-        first_rate_is_counted = True
-        
-    win_frame = frame[14:194, 682:784] # キャプチャしているフレームをwin_imageと同じ領域に切り取る
-    lose_frame = frame[39:189, 720:825] # キャプチャしているフレームをlose_imageと同じ領域に切り取る
-    # frame[y:y, x:x]
+    while True:
+        ret, frame = cap.read()
 
-    # 勝利後、敗北後のフレームが切り取れているか確認
-    # cv2.imshow("win_frame", win_frame)
-    # cv2.imshow("lose_frame", lose_frame)
+        if access_timeout_sec <= int(time.time()) - start_time:
+            kuma_dict = kumamate_get_rate(soup)
+            # print(kuma_dict)
+            start_time = int(time.time())
 
-    # 勝利後、敗北後のフレームを新しく保存
-    # cv2.imwrite("win.png", win_frame)
-    # cv2.imwrite("lose.png", lose_frame)
-
-    win_match_rate = np.count_nonzero(win_image == win_frame) / win_image.size
-    lose_match_rate = np.count_nonzero(lose_image == lose_frame) / lose_image.size
-
-    if win_match_rate > 0.8: # もしwin_imageとwin_frameの一致率が0.8以上だった場合
-        result = read_rate_from_image(frame) # 戦闘力取得
-        rate_comparison(int(result))
-        write_rate(result)
-        print(add_commas(result))
-
-        if not win_is_counted:
-            add_wins() # 連勝数+1
+        if not first_rate_is_counted: # キャラ選択画面で戦闘力を取得する
+            first_rate = read_first_rate_from_image(frame, reader)
+            rate_comparison(int(first_rate), kuma_dict)
+            write_rate(first_rate)
+            print(True)
             print(get_wins())
-            win_is_counted = True
+            print(get_rate())
+            first_rate_is_counted = True
+            
+        win_frame = frame[14:194, 682:784] # キャプチャしているフレームをwin_imageと同じ領域に切り取る
+        lose_frame = frame[39:189, 720:825] # キャプチャしているフレームをlose_imageと同じ領域に切り取る
+        # frame[y:y, x:x]
 
-    elif lose_match_rate > 0.8: # もしlose_imageとlose_frameの一致率が0.8以上だった場合
-        result = read_rate_from_image(frame) # 戦闘力取得
-        rate_comparison(int(result))
-        write_rate(result)
-        print(add_commas(result))
+        # 勝利後、敗北後のフレームが切り取れているか確認
+        # cv2.imshow("win_frame", win_frame)
+        # cv2.imshow("lose_frame", lose_frame)
 
-        if not win_is_counted:
-            reset_wins() # 連勝数=0
-            print(get_wins())
-            win_is_counted = True
+        # 勝利後、敗北後のフレームを新しく保存
+        # cv2.imwrite("win.png", win_frame)
+        # cv2.imwrite("lose.png", lose_frame)
 
-    else:
-        win_is_counted = False
+        win_match_rate = calc_ssim(win_frame, win_image)
+        lose_match_rate = calc_ssim(lose_frame, lose_image)
+
+        if win_match_rate > 0.6: # もしwin_imageとwin_frameの類似度が0.6以上だった場合
+            result = read_rate_from_image(frame, reader) # 戦闘力取得
+            rate_comparison(int(result), kuma_dict)
+            write_rate(result)
+            print(add_commas(result))
+
+            if not win_is_counted:
+                add_wins() # 連勝数+1
+                print(get_wins())
+                win_is_counted = True
+
+        elif lose_match_rate > 0.6: # もしlose_imageとlose_frameの類似度が0.6以上だった場合
+            result = read_rate_from_image(frame, reader) # 戦闘力取得
+            rate_comparison(int(result), kuma_dict)
+            write_rate(result)
+            print(add_commas(result))
+
+            if not win_is_counted:
+                reset_wins() # 連勝数=0
+                print(get_wins())
+                win_is_counted = True
+
+        else:
+            win_is_counted = False
+
+if __name__ == "__main__":
+    main()
