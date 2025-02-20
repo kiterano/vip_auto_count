@@ -8,27 +8,23 @@ from bs4 import BeautifulSoup
 import re
 import time
 
-def write_wins(wins: int):
-    # vipc.txtに連勝数を書き込む
-    with open('vipc.txt',"w",encoding="utf-8") as f:
-        f.write("%s連勝" % wins)
 
 def get_wins() -> str:
     ## vipc.txtから連勝数を取得する
     with open('vipc.txt',"r",encoding="utf-8") as f:
-        return f.read()
+        wins_str = f.read()
+    return int(wins_str[0])
 
 def add_wins():
     # vipc.txtの連勝数に+1してまた書き込む
-    s = get_wins()
-    index = s.find('連勝')
-    r = s[:index]
-    wins = int(r) + 1
-    write_wins(wins)
+    wins = get_wins() + 1
+    wins_str = str(wins) + "連勝"
+    write_file('vipc.txt', wins_str)
 
 def reset_wins():
     # 連勝数をリセットする
-    write_wins(0)
+    wins_str = "0連勝"
+    write_file('vipc.txt', wins_str)
 
 def read_first_rate_from_image(frame, reader) -> str:
     # キャラ選択画面から戦闘力を取得する
@@ -50,13 +46,11 @@ def read_rate_from_image(frame, reader) -> str:
 
 def write_rate(rate: str):
     # rate.txtに戦闘力を書き込む
-    with open('rate.txt',"w",encoding="utf-8") as f:
-        f.write(add_commas(rate))
+    return write_file('rate.txt', add_commas(rate))
 
 def get_rate() -> str:
-    ## rate.txtから戦闘力を取得する
-    with open('rate.txt',"r",encoding="utf-8") as f:
-        return f.read()
+    # rate.txtから戦闘力を取得する
+    return read_file('rate.txt')
 
 def remove_non_numbers(rate: str) -> str:
     ## 数字以外を削除する
@@ -97,8 +91,7 @@ def rate_comparison(rate, kuma_dict):
     current_status = None
     next_status = None
 
-    i = 0
-    for kuma_rate in kuma_rate_list:
+    for i, kuma_rate in enumerate(kuma_rate_list):
 
         if kuma_rate < rate:
             current_kuma_name = [k for k, v in kuma_dict.items() if v == kuma_rate]
@@ -108,28 +101,35 @@ def rate_comparison(rate, kuma_dict):
             current_status = "現在：" + str(*current_kuma_name)
             next_status = str(*next_kuma_name) + "まであと" + str(diff_rate)
 
-            print(current_status)
-            print(next_status)
-
             break
-
-        i = i + 1
     
-    write_status(current_status, next_status)
+    return current_status, next_status
 
-def write_status(current_status, next_status):
+def write_status(current: str, next: str):
     # 現在の段位と次の段位をテキストファイルに保存
-    with open('current_status.txt',"w",encoding="utf-8") as f:
-        f.write(current_status)
-    
-    with open('next_status.txt',"w",encoding="utf-8") as f2:
-        f2.write(next_status)
+    write_file('current_status.txt', current)
+    write_file('next_status.txt', next)
 
 def calc_ssim(frame, image):
     # 画像の類似度をSSIMで計算
     SSIM_opencv, _ = cv2.quality.QualitySSIM_compute(frame, image)
     ssim = np.average(SSIM_opencv)
     return ssim
+
+# ファイル名と変数を引数とし、その変数をファイルに保存する関数
+def write_file(file_name: str, data) -> bool:
+    read_data = read_file(file_name)
+    if read_data == data:
+        return False
+    else:
+        with open(file_name, 'w') as f:
+            f.write(data)
+        return True
+
+# ファイル名を引数とし、そのファイルを読み込む関数
+def read_file(file_name: str) -> str:
+    with open(file_name, 'r', encoding="utf-8") as f:
+        return f.read()
 
 
 def main():
@@ -180,11 +180,11 @@ def main():
                 first_rate = remove_non_numbers(get_rate())
                 if first_rate == "":
                     first_rate = 0
-
-            rate_comparison(int(first_rate), kuma_dict)
-            write_rate(first_rate)
             print(True)
-            print(get_wins())
+            current_status, next_status = rate_comparison(int(first_rate), kuma_dict)
+            write_rate(first_rate)
+            write_status(current_status, next_status)
+            print(f'{get_wins()}連勝')
             print(get_rate())
             first_rate_is_counted = True
             
@@ -204,26 +204,32 @@ def main():
         lose_match_rate = calc_ssim(lose_frame, lose_image)
 
         if win_match_rate > 0.6: # もしwin_imageとwin_frameの類似度が0.6以上だった場合
-            result = read_rate_from_image(frame, reader) # 戦闘力取得
-            rate_comparison(int(result), kuma_dict)
-            write_rate(result)
-            print(add_commas(result))
-
             if not win_is_counted:
                 add_wins() # 連勝数+1
-                print(get_wins())
+                print(f'{get_wins()}連勝')
                 win_is_counted = True
+
+            result = read_rate_from_image(frame, reader) # 戦闘力取得
+            current_status, next_status = rate_comparison(int(result), kuma_dict) # 段位取得
+            if write_rate(result):
+                write_status(current_status, next_status)
+                print(get_rate())
+                print(current_status)
+                print(next_status)
 
         elif lose_match_rate > 0.6: # もしlose_imageとlose_frameの類似度が0.6以上だった場合
-            result = read_rate_from_image(frame, reader) # 戦闘力取得
-            rate_comparison(int(result), kuma_dict)
-            write_rate(result)
-            print(add_commas(result))
-
             if not win_is_counted:
                 reset_wins() # 連勝数=0
-                print(get_wins())
+                print(f'{get_wins()}連勝')
                 win_is_counted = True
+
+            result = read_rate_from_image(frame, reader) # 戦闘力取得
+            current_status, next_status = rate_comparison(int(result), kuma_dict)
+            if write_rate(result):
+                write_status(current_status, next_status)
+                print(get_rate())
+                print(current_status)
+                print(next_status)
 
         else:
             win_is_counted = False
