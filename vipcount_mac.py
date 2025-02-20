@@ -94,6 +94,9 @@ def rate_comparison(rate, kuma_dict):
     # 現在の戦闘力とクマメイトの戦闘力を比較
     kuma_rate_list = list(kuma_dict.values())
 
+    current_status = None
+    next_status = None
+
     i = 0
     for kuma_rate in kuma_rate_list:
 
@@ -171,7 +174,13 @@ def main():
             reset_wins()
 
         if not first_rate_is_counted: # キャラ選択画面で戦闘力を取得する
-            first_rate = read_first_rate_from_image(frame, reader)
+            try:
+                first_rate = read_first_rate_from_image(frame, reader)
+            except IndexError: # もしキャラ選択画面で戦闘力が取得できなかったら
+                first_rate = remove_non_numbers(get_rate())
+                if first_rate == "":
+                    first_rate = 0
+
             rate_comparison(int(first_rate), kuma_dict)
             write_rate(first_rate)
             print(True)
