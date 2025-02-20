@@ -166,6 +166,10 @@ def main():
             # print(kuma_dict)
             start_time = int(time.time())
 
+        # もしvipc.txtがなかったら作成
+        if not os.path.exists('vipc.txt'):
+            reset_wins()
+
         if not first_rate_is_counted: # キャラ選択画面で戦闘力を取得する
             first_rate = read_first_rate_from_image(frame, reader)
             rate_comparison(int(first_rate), kuma_dict)
